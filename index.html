@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>AGRONYXX – Smart Agricultural Water Resource Management Simulator</title>
+    <style>
+        /* ===== GLOBAL ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        body {
+            background: #0b1f1a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .agronyxx-app {
+            max-width: 1440px;
+            width: 100%;
+            background: linear-gradient(145deg, #f7fcf9 0%, #eef7f0 100%);
+            border-radius: 48px 48px 32px 32px;
+            box-shadow: 0 30px 50px -20px rgba(0, 20, 10, 0.7), inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            padding: 24px 28px 32px;
+            border: 1px solid rgba(100, 180, 120, 0.3);
+            transition: all 0.2s;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(20, 120, 60, 0.15);
+        }
+
+        .logo-area h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #0e3d2b;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-area h1 span {
+            background: #1b6e4b;
+            color: #e6ffed;
+            font-size: 1.2rem;
+            padding: 4px 12px;
+            border-radius: 40px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0, 80, 40, 0.3);
+        }
+
+        .logo-area .subtitle {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2d6b4a;
+            margin-top: 4px;
+            letter-spacing: 0.2px;
+        }
+
+        .sim-clock {
+            background: #1b3d2f;
+            padding: 12px 22px;
+            border-radius: 100px;
+            color: #d4f5e0;
+            font-weight: 600;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 40, 20, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 1.1rem;
+            border: 1px solid #79c99a;
+        }
+
+        .sim-clock .day {
+            background: #2d8b5c;
+            padding: 4px 12px;
+            border-radius: 32px;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+
+        /* ===== MAIN GRID ===== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        /* ===== FARM SCENE (visual core) ===== */
+        .farm-scene {
+            grid-column: 1 / 3;
+            background: linear-gradient(180deg, #c6e7d4 0%, #9ecfaf 40%, #7cb88b 100%);
+            border-radius: 28px;
+            padding: 16px 12px 0 12px;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 12px 24px -8px #1e3d2a;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sky-indicator {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #12402b;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(3px);
+            border-radius: 60px;
+            margin-bottom: 6px;
+            align-items: center;
+            padding: 6px 14px;
+        }
+
+        .weather-icon-lg {
+            font-size: 2rem;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+            transition: transform 0.3s;
+        }
+
+        .farm-canvas-container {
+            position: relative;
+            flex: 1;
+            min-height: 200px;
+        }
+
+        canvas#farmCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 20px;
+            background: transparent;
+        }
+
+        .water-flow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* ===== SIDE PANELS ===== */
+        .info-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 16px 14px;
+            box-shadow: 0 10px 20px -5px rgba(20, 50, 30, 0.2), inset 0 1px 2px #ffffff;
+            border: 1px solid rgba(120, 190, 140, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #1b5e3a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #183f2b;
+            padding: 3px 0;
+            border-bottom: 1px dashed #b8ddc4;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: #0b3320;
+            background: #e1f3e6;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+        }
+
+        .water-source-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .source-bar {
+            flex: 1;
+            height: 10px;
+            background: #c2dfcc;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .source-fill {
+            height: 100%;
+            width: 60%;
+            background: #2b8e5a;
+            border-radius: 20px;
+            transition: width 0.3s;
+        }
+
+        .source-fill.well {
+            background: #6f4e2e;
+        }
+        .source-fill.rain {
+            background: #3b9bd7;
+        }
+        .source-fill.river {
+            background: #1f7a9e;
+        }
+
+        .alert-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; transform: scale(1.02); }
+            100% { opacity: 0.8; }
+        }
+
+        /* ===== CONTROLS ===== */
+        .control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: #ffffffc2;
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            padding: 10px 20px;
+            margin-top: 8px;
+            border: 1px solid #b1dac1;
+        }
+
+        .btn {
+            background: #ecf9f0;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 18px;
+            font-weight: 600;
+            color: #134b2e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), inset 0 0 0 1px #b8ddc4;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: #daf1e2;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 14px rgba(20, 70, 40, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn.primary {
+            background: #1b6e4b;
+            color: white;
+            box-shadow: 0 6px 12px #0b3d2890;
+        }
+
+        .btn.primary:hover {
+            background: #258658;
+        }
+
+        .btn.danger {
+            background: #c44536;
+            color: white;
+            box-shadow: 0 6px 12px #7a2e23a0;
+        }
+
+        .select-sm {
+            background: white;
+            border: 1px solid #b1dac1;
+            border-radius: 40px;
+            padding: 8px 12px;
+            font-weight: 600;
+            color: #183f2b;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* ===== CHARTS ===== */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .chart-card {
+            background: #ffffffdb;
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 10px 12px;
+            box-shadow: 0 6px 12px -3px #1b3d2a30;
+            border: 1px solid #b8ddc4;
+        }
+
+        .chart-card h4 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #2a6144;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 80px;
+            display: block;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1000px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+            .farm-scene {
+                grid-column: 1 / 3;
+            }
+            .charts-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .agronyxx-app {
+                padding: 16px;
+            }
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .farm-scene {
+                grid-column: 1;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .sim-clock {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .logo-area h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="agronyxx-app">
+
+    <!-- ===== HEADER ===== -->
+    <div class="header">
+        <div class="logo-area">
+            <h1>AGRONYXX <span>v2.4</span></h1>
+            <div class="subtitle">Smart Agricultural Water Resource Management · AI-Driven Soil, Weather, Crop & Water Resource Simulation</div>
+        </div>
+        <div class="sim-clock">
+            <span>📅 <span id="simDayLabel">DAY 64</span></span>
+            <span class="day" id="simTimeLabel">08:42 AM</span>
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="dashboard">
+        <!-- FARM CANVAS + VISUALS -->
+        <div class="farm-scene">
+            <div class="sky-indicator">
+                <span>☀️ <span id="weatherConditionLabel">SUNNY</span></span>
+                <span class="weather-icon-lg" id="weatherEmoji">☀️</span>
+                <span>🌡️ <span id="tempLabel">31°C</span></span>
+                <span>💧 <span id="humidityLabel">64%</span></span>
+            </div>
+            <div class="farm-canvas-container">
+                <canvas id="farmCanvas" width="800" height="400"></canvas>
+                <canvas id="rainCanvas" class="water-flow-overlay" width="800" height="400"></canvas>
+            </div>
+        </div>
+
+        <!-- LEFT INFO PANEL: CROP & SOIL -->
+        <div class="info-panel">
+            <div class="panel-title">🌾 CROP</div>
+            <div class="metric-row"><span>Crop</span><span class="metric-value" id="cropNameLabel">Paddy</span></div>
+            <div class="metric-row"><span>Stage</span><span class="metric-value" id="cropStageLabel">Mid-season</span></div>
+            <div class="metric-row"><span>Age</span><span class="metric-value" id="cropAgeLabel">64 / 120 d</span></div>
+            <div class="metric-row"><span>Kc</span><span class="metric-value" id="kcLabel">1.15</span></div>
+            <div class="metric-row"><span>Root depth</span><span class="metric-value" id="rootDepthLabel">0.6 m</span></div>
+
+            <div class="panel-title" style="margin-top: 6px;">🪨 SOIL</div>
+            <div class="metric-row"><span>Moisture</span><span class="metric-value" id="soilMoistureLabel">42%</span></div>
+            <div class="metric-row"><span>Type</span><span class="metric-value" id="soilTypeLabel">Loamy</span></div>
+            <div class="metric-row"><span>Temp</span><span class="metric-value" id="soilTempLabel">27°C</span></div>
+            <div class="metric-row"><span>Field cap.</span><span class="metric-value" id="fieldCapLabel">70%</span></div>
+            <div class="metric-row"><span>Wilting</span><span class="metric-value" id="wiltingLabel">20%</span></div>
+        </div>
+
+        <!-- RIGHT INFO PANEL: WATER & PUMP -->
+        <div class="info-panel">
+            <div class="panel-title">💧 WATER SOURCES</div>
+            <div class="water-source-item">
+                <span style="width: 50px;">Well</span>
+                <div class="source-bar"><div class="source-fill well" id="wellFill" style="width: 65%"></div></div>
+                <span id="wellLabel" style="font-weight: 700; min-width: 60px; text-align: right;">6,500 L</span>
+            </div>
+            <div class="water-source-item">
+                <span style="width: 50px;">Rain</span>
+                <div class="source-bar"><div class="source-fill rain" id="rainFill" style="width: 24%"></div></div>
+                <span id="rainLabel" style="font-weight: 700; min-width: 60px; text-align: right;">2,400 L</span>
+            </div>
+            <div class="water-source-item">
+                <span style="width: 50px;">River</span>
+                <div class="source-bar"><div class="source-fill river" id="riverFill" style="width: 80%"></div></div>
+                <span id="riverLabel" style="font-weight: 700; min-width: 60px; text-align: right;">12,000 L</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 8px;">🚰 PUMP & IRRIGATION</div>
+            <div class="metric-row"><span>Status</span><span class="metric-value" id="pumpStatusLabel">OFF</span></div>
+            <div class="metric-row"><span>Flow</span><span class="metric-value" id="flowRateLabel">0 L/min</span></div>
+            <div class="metric-row"><span>Required</span><span class="metric-value" id="irrReqLabel">3,850 L</span></div>
+            <div class="metric-row"><span>Delivered</span><span class="metric-value" id="deliveredLabel">0 L</span></div>
+            <div class="metric-row"><span>Next irrigation</span><span class="metric-value" id="nextIrrLabel">7 h</span></div>
+            <div id="alertContainer" style="margin-top: 4px;">
+                <span class="alert-badge" id="alertBadge" style="background: #d4f0dd; color: #1b5e3a;">🟢 IRRIGATION NOT REQUIRED</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTROLS ===== -->
+    <div class="control-bar">
+        <select class="select-sm" id="cropSelect">
+            <option value="paddy">🌾 Paddy (Rice)</option>
+            <option value="wheat">🌾 Wheat</option>
+        </select>
+        <button class="btn" id="playBtn">▶ PLAY</button>
+        <button class="btn" id="pauseBtn">⏸ PAUSE</button>
+        <button class="btn" id="speed2xBtn">⏩ x2</button>
+        <button class="btn" id="speed5xBtn">⏩ x5</button>
+        <button class="btn" id="resetBtn">↻ RESET</button>
+        <span style="width: 1px; height: 24px; background: #b8ddc4; margin: 0 6px;"></span>
+        <button class="btn" id="openDamBtn">🏗 OPEN DAM</button>
+        <button class="btn" id="closeDamBtn">🚫 CLOSE DAM</button>
+        <span style="width: 1px; height: 24px; background: #b8ddc4; margin: 0 6px;"></span>
+        <select class="select-sm" id="irrigationModeSelect">
+            <option value="auto">AUTO</option>
+            <option value="manual">MANUAL</option>
+        </select>
+        <select class="select-sm" id="waterSourceSelect">
+            <option value="auto">AUTO SOURCE</option>
+            <option value="well">WELL</option>
+            <option value="rain">RAIN</option>
+            <option value="river">RIVER</option>
+        </select>
+        <button class="btn primary" id="pumpOnBtn">⏻ PUMP ON</button>
+        <button class="btn danger" id="pumpOffBtn">⏻ PUMP OFF</button>
+    </div>
+
+    <!-- ===== CHARTS ===== -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h4>📈 SOIL MOISTURE</h4>
+            <canvas id="chartMoisture" class="chart-canvas" width="240" height="80"></canvas>
+        </div>
+        <div class="chart-card">
+            <h4>🌧️ RAINFALL (mm)</h4>
+            <canvas id="chartRain" class="chart-canvas" width="240" height="80"></canvas>
+        </div>
+        <div class="chart-card">
+            <h4>💧 WATER USAGE (L)</h4>
+            <canvas id="chartUsage" class="chart-canvas" width="240" height="80"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // AGRONYXX – Smart Agricultural Water Resource Management
+    // Vanilla JS simulation – graphical digital twin
+    // ============================================================
+
+    // ---------- SIMULATION STATE ----------
+    const simulation = {
+        day: 64,
+        hour: 8,
+        minute: 42,
+        speed: 1,
+        running: false,
+        lastUpdate: performance.now(),
+        // weather
+        temperature: 31,
+        humidity: 64,
+        rainfall: 0,          // mm in last hour (simulated)
+        rainProbability: 72,
+        windSpeed: 8,
+        solarRadiation: 650,
+        weatherCondition: 'SUNNY',
+        // soil
+        soilMoisture: 42,
+        soilTemperature: 27,
+        soilType: 'Loamy',
+        fieldCapacity: 70,
+        wiltingPoint: 20,
+        // crop
+        cropType: 'paddy',
+        cropAge: 64,
+        growthStage: 'Mid-season',
+        kc: 1.15,
+        rootDepth: 0.6,
+        minSoilMoisture: 55,
+        targetSoilMoisture: 70,
+        // water sources
+        well: 6500,
+        rainTank: 2400,
+        river: 12000,
+        damOpen: false,
+        riverFlow: 400,        // L/min base (increases with dam open)
+        // irrigation
+        irrigationRequired: 3850,
+        irrigationMode: 'auto',
+        waterSourceMode: 'auto',
+        pumpStatus: 'OFF',
+        pumpFlow: 0,
+        delivered: 0,
+        targetIrrigation: 3850,
+        // scheduling
+        nextIrrigationHours: 7,
+        // historical data for charts
+        moistureHistory: Array(30).fill(42),
+        rainHistory: Array(30).fill(0),
+        usageHistory: Array(30).fill(0),
+    };
+
+    // ---------- DOM REFERENCES ----------
+    const canvas = document.getElementById('farmCanvas');
+    const ctx = canvas.getContext('2d');
+    const rainCanvas = document.getElementById('rainCanvas');
+    const rainCtx = rainCanvas.getContext('2d');
+
+    // ---------- CROP PARAMETERS ----------
+    const CROP_DATA = {
+        paddy: {
+            name: 'Paddy (Rice)',
+            duration: 120,
+            kcStages: { initial: 1.05, development: 1.10, mid: 1.15, late: 0.95, harvest: 0.80 },
+            rootDepthMax: 0.6,
+            minMoisture: 55,
+            targetMoisture: 75,
+        },
+        wheat: {
+            name: 'Wheat',
+            duration: 140,
+            kcStages: { initial: 0.4, development: 0.7, mid: 1.15, late: 0.45, harvest: 0.3 },
+            rootDepthMax: 0.9,
+            minMoisture: 45,
+            targetMoisture: 65,
+        }
+    };
+
+    // ---------- HELPER FUNCTIONS ----------
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+
+    function getGrowthStage(age, duration) {
+        const ratio = age / duration;
+        if (ratio < 0.2) return 'Initial';
+        if (ratio < 0.5) return 'Development';
+        if (ratio < 0.8) return 'Mid-season';
+        if (ratio < 0.95) return 'Late-season';
+        return 'Harvest';
+    }
+
+    function getKcForStage(stage, cropKey) {
+        const map = { 'Initial': 'initial', 'Development': 'development', 'Mid-season': 'mid', 'Late-season': 'late', 'Harvest': 'harvest' };
+        return CROP_DATA[cropKey].kcStages[map[stage]] || 1.0;
+    }
+
+    // ---------- WEATHER ENGINE ----------
+    function generateWeather() {
+        const hour = simulation.hour;
+        // Temperature: day cycle
+        let baseTemp = 22 + 10 * Math.sin((hour - 6) / 24 * 2 * Math.PI);
+        baseTemp += (Math.random() - 0.5) * 3;
+        simulation.temperature = clamp(baseTemp, 12, 42);
+
+        // Humidity inversely related to temp
+        simulation.humidity = clamp(90 - simulation.temperature * 1.2 + (Math.random() * 20 - 10), 25, 95);
+
+        // Rain probability based on humidity
+        simulation.rainProbability = clamp((simulation.humidity - 40) * 1.8 + (Math.random() * 20 - 10), 5, 95);
+
+        // Wind
+        simulation.windSpeed = clamp(4 + Math.random() * 12, 0, 25);
+
+        // Solar radiation
+        const sunAngle = Math.max(0, Math.sin((hour - 6) / 12 * Math.PI));
+        simulation.solarRadiation = clamp(200 + 700 * sunAngle + (Math.random() - 0.5) * 100, 0, 1000);
+
+        // Weather condition
+        const rainRoll = Math.random() * 100;
+        if (rainRoll < simulation.rainProbability * 0.3) {
+            simulation.weatherCondition = 'HEAVY RAIN';
+            simulation.rainfall = 2 + Math.random() * 8;
+        } else if (rainRoll < simulation.rainProbability * 0.7) {
+            simulation.weatherCondition = 'RAIN';
+            simulation.rainfall = 0.5 + Math.random() * 4;
+        } else if (rainRoll < simulation.rainProbability * 1.1) {
+            simulation.weatherCondition = 'CLOUDY';
+            simulation.rainfall = 0;
+        } else if (rainRoll < simulation.rainProbability * 1.6) {
+            simulation.weatherCondition = 'PARTLY CLOUDY';
+            simulation.rainfall = 0;
+        } else {
+            simulation.weatherCondition = 'SUNNY';
+            simulation.rainfall = 0;
+        }
+
+        // Update rain tank & soil from rain
+        if (simulation.rainfall > 0) {
+            const rainContribution = simulation.rainfall * 18;
+            simulation.rainTank = Math.min(10000, simulation.rainTank + rainContribution);
+            simulation.soilMoisture = clamp(simulation.soilMoisture + simulation.rainfall * 1.8, 10, 95);
+            simulation.delivered = 0; // reset irrigation progress if heavy rain
+        }
+    }
+
+    // ---------- SOIL UPDATE ----------
+    function updateSoil() {
+        // Natural drying based on temperature and crop
+        const evapFactor = 0.02 + (simulation.temperature / 200) + (simulation.windSpeed / 400);
+        simulation.soilMoisture -= evapFactor * (simulation.running ? 1 : 0);
+        simulation.soilMoisture = clamp(simulation.soilMoisture, 8, 95);
+        simulation.soilTemperature = clamp(simulation.temperature - 2 + (Math.random() * 2 - 1), 10, 38);
+
+        // Update crop stage based on age
+        const crop = CROP_DATA[simulation.cropType];
+        simulation.cropAge = Math.min(simulation.cropAge, crop.duration);
+        simulation.growthStage = getGrowthStage(simulation.cropAge, crop.duration);
+        simulation.kc = getKcForStage(simulation.growthStage, simulation.cropType);
+        simulation.rootDepth = (simulation.cropAge / crop.duration) * crop.rootDepthMax + 0.1;
+        simulation.minSoilMoisture = crop.minMoisture;
+        simulation.targetSoilMoisture = crop.targetMoisture;
+    }
+
+    // ---------- ETo & CROP WATER REQUIREMENT ----------
+    function calculateETo() {
+        // Simplified Hargreaves / radiation based approximation
+        const t = simulation.temperature;
+        const rh = simulation.humidity;
+        const w = simulation.windSpeed;
+        const rs = simulation.solarRadiation;
+        // ETo ≈ 0.0023 * (Tmean + 17.8) * sqrt(Rs) * (1 + 0.01*W) * (1 - 0.01*RH/100)
+        let eto = 0.0023 * (t + 17.8) * Math.sqrt(Math.max(rs, 10)) * (1 + 0.01 * w) * (1 - 0.008 * rh);
+        return clamp(eto, 0.5, 12);
+    }
+
+    function calculateCropWaterRequirement() {
+        const eto = calculateETo();
+        const etc = eto * simulation.kc;
+        const demand = etc * 1200; // L/day per hectare approx
+        return Math.round(demand);
+    }
+
+    function calculateIrrigationRequirement() {
+        const cropDemand = calculateCropWaterRequirement();
+        const effectiveRain = simulation.rainfall * 15;
+        const soilWater = (simulation.soilMoisture - simulation.wiltingPoint) / 100 * 1800;
+        let req = cropDemand - effectiveRain - soilWater;
+        req = clamp(req, 0, 12000);
+        // adjust by soil moisture threshold
+        if (simulation.soilMoisture < simulation.minSoilMoisture) {
+            req = Math.max(req, 2500);
+        }
+        return Math.round(req);
+    }
+
+    function calculateIrrigationFrequency() {
+        const req = calculateIrrigationRequirement();
+        if (req <= 0) return 24;
+        const depletionRate = (simulation.temperature / 30) * 0.8 + 0.5;
+        const hours = (simulation.soilMoisture - simulation.minSoilMoisture) / depletionRate * 10;
+        return clamp(Math.round(hours), 1, 48);
+    }
+
+    // ---------- WATER SOURCE SELECTION ----------
+    function selectWaterSource(required) {
+        if (simulation.waterSourceMode !== 'auto') {
+            return simulation.waterSourceMode;
+        }
+        // Priority: Rain > River (if dam open/available) > Well
+        if (simulation.rainTank >= required) return 'rain';
+        if (simulation.damOpen && simulation.river > required) return 'river';
+        if (simulation.river > required) return 'river';
+        if (simulation.well > required) return 'well';
+        // If insufficient, pick largest available
+        const sources = [
+            { name: 'rain', amount: simulation.rainTank },
+            { name: 'river', amount: simulation.river },
+            { name: 'well', amount: simulation.well },
+        ];
+        sources.sort((a, b) => b.amount - a.amount);
+        return sources[0].name;
+    }
+
+    // ---------- PUMP OPERATION ----------
+    function operatePump() {
+        if (simulation.pumpStatus === 'RUNNING') {
+            // Deliver water
+            const flow = 900 + Math.random() * 200;
+            simulation.pumpFlow = flow;
+            const deliveredThisTick = flow / 60; // per second (approx)
+            simulation.delivered = Math.min(simulation.delivered + deliveredThisTick, simulation.targetIrrigation);
+            simulation.soilMoisture = clamp(simulation.soilMoisture + 0.15, 10, 95);
+            // deplete sources
+            const source = simulation.activeSource || 'well';
+            if (source === 'well') simulation.well = Math.max(0, simulation.well - deliveredThisTick);
+            if (source === 'rain') simulation.rainTank = Math.max(0, simulation.rainTank - deliveredThisTick);
+            if (source === 'river') simulation.river = Math.max(0, simulation.river - deliveredThisTick);
+
+            // Check if complete
+            if (simulation.delivered >= simulation.targetIrrigation - 10) {
+                simulation.pumpStatus = 'COMPLETED';
+                simulation.pumpFlow = 0;
+                simulation.delivered = 0;
+                setTimeout(() => {
+                    if (simulation.pumpStatus === 'COMPLETED') simulation.pumpStatus = 'OFF';
+                }, 2000);
+            }
+        } else {
+            simulation.pumpFlow = 0;
+        }
+    }
+
+    // ---------- UPDATE WATER SOURCES (dam & river) ----------
+    function updateWaterSources() {
+        // River recharge from dam
+        if (simulation.damOpen) {
+            simulation.riverFlow = 1200;
+            simulation.river = Math.min(30000, simulation.river + 40);
+        } else {
+            simulation.riverFlow = 400;
+            simulation.river = Math.min(30000, simulation.river + 10);
+        }
+        // Well natural recharge
+        simulation.well = Math.min(12000, simulation.well + 2);
+        // Rain tank minimal replenish (dew)
+        simulation.rainTank = Math.min(10000, simulation.rainTank + 0.5);
+    }
+
+    // ---------- UPDATE VISUALS (farm canvas) ----------
+    function drawFarmScene() {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // ---- SKY GRADIENT ----
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+        if (simulation.weatherCondition.includes('RAIN')) {
+            skyGrad.addColorStop(0, '#6b7b8b');
+            skyGrad.addColorStop(1, '#8fa0b0');
+        } else if (simulation.weatherCondition === 'CLOUDY') {
+            skyGrad.addColorStop(0, '#b0c4d4');
+            skyGrad.addColorStop(1, '#d0e0e8');
+        } else {
+            skyGrad.addColorStop(0, '#7ec8e3');
+            skyGrad.addColorStop(1, '#b8e0f0');
+        }
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, h * 0.45);
+
+        // ---- SUN / CLOUDS ----
+        if (simulation.weatherCondition === 'SUNNY') {
+            ctx.beginPath();
+            ctx.arc(120, 70, 40, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFF4B0';
+            ctx.shadowColor = '#FFD966';
+            ctx.shadowBlur = 40;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // ---- CLOUDS ----
+        if (simulation.weatherCondition.includes('CLOUD') || simulation.weatherCondition.includes('RAIN')) {
+            ctx.fillStyle = 'rgba(240, 248, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(180, 60, 35, 0, Math.PI * 2);
+            ctx.arc(230, 45, 40, 0, Math.PI * 2);
+            ctx.arc(280, 60, 30, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ---- GROUND / SOIL ----
+        const groundY = h * 0.55;
+        ctx.fillStyle = '#7a5b3b';
+        ctx.fillRect(0, groundY, w, h - groundY);
+
+        // Soil layers
+        ctx.fillStyle = '#8b6b4b';
+        ctx.fillRect(0, groundY + 20, w, 40);
+        ctx.fillStyle = '#6b4f35';
+        ctx.fillRect(0, groundY + 60, w, h);
+
+        // Moisture tint (visual)
+        const moistureAlpha = 0.2 + (simulation.soilMoisture / 200);
+        ctx.fillStyle = `rgba(60, 120, 200, ${moistureAlpha * 0.3})`;
+        ctx.fillRect(0, groundY, w, h - groundY);
+
+        // ---- CROPS (field) ----
+        const cropColor = simulation.cropType === 'paddy' ? '#2e8b57' : '#d4b45a';
+        const cropColorLight = simulation.cropType === 'paddy' ? '#3ca86b' : '#e8d07a';
+        const cropCount = 14;
+        for (let i = 0; i < cropCount; i++) {
+            const x = 60 + i * 65 + (i % 2) * 12;
+            const baseY = groundY - 5;
+            const stemHeight = 30 + (simulation.cropAge / 120) * 35 + (i % 3) * 4;
+            // wind sway
+            const sway = Math.sin(Date.now() / 800 + i) * 3 * (simulation.windSpeed / 10);
+
+            ctx.beginPath();
+            ctx.moveTo(x, baseY);
+            ctx.lineTo(x + sway, baseY - stemHeight);
+            ctx.strokeStyle = '#2a6b3a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // leaves
+            ctx.fillStyle = cropColorLight;
+            ctx.beginPath();
+            ctx.ellipse(x + sway - 8, baseY - stemHeight * 0.6, 10, 5, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(x + sway + 8, baseY - stemHeight * 0.5, 10, 5, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ---- WATER SOURCES GRAPHICS ----
+        // Well (left)
+        ctx.fillStyle = '#5a3e2b';
+        ctx.beginPath();
+        ctx.ellipse(80, groundY + 50, 24, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#3a7ca5';
+        ctx.beginPath();
+        ctx.ellipse(80, groundY + 48, 14, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rain tank (left upper)
+        ctx.fillStyle = '#a0c4d8';
+        ctx.fillRect(30, groundY - 70, 40, 50);
+        ctx.fillStyle = '#4a9fd8';
+        const rainFill = (simulation.rainTank / 10000) * 50;
+        ctx.fillRect(30, groundY - 20 - rainFill, 40, rainFill);
+
+        // River (right)
+        ctx.fillStyle = '#2f7fa0';
+        ctx.beginPath();
+        ctx.moveTo(w - 120, groundY + 20);
+        ctx.quadraticCurveTo(w - 70, groundY + 40, w - 20, groundY + 30);
+        ctx.lineTo(w - 20, groundY + 70);
+        ctx.quadraticCurveTo(w - 70, groundY + 80, w - 120, groundY + 60);
+        ctx.fill();
+        // river flow lines
+        ctx.strokeStyle = '#8ecae6';
+        ctx.lineWidth = 2;
+        for (let r = 0; r < 3; r++) {
+            ctx.beginPath();
+            ctx.moveTo(w - 110 + r * 20, groundY + 35 + r * 10);
+            ctx.lineTo(w - 80 + r * 20, groundY + 45 + r * 10);
+            ctx.stroke();
+        }
+
+        // Dam (far right)
+        ctx.fillStyle = '#7a7a7a';
+        ctx.fillRect(w - 40, groundY - 30, 30, 60);
+        ctx.fillStyle = simulation.damOpen ? '#00b4d8' : '#2a6f8a';
+        ctx.fillRect(w - 38, groundY - 25, 26, 45);
+
+        // ---- PUMP ----
+        const pumpX = w * 0.55;
+        const pumpY = groundY - 20;
+        ctx.fillStyle = '#4a4e5a';
+        ctx.beginPath();
+        ctx.ellipse(pumpX, pumpY, 22, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2d8b5c';
+        if (simulation.pumpStatus === 'RUNNING') {
+            ctx.beginPath();
+            ctx.arc(pumpX, pumpY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#00b894';
+            ctx.fill();
+            // rotation indicator
+            ctx.beginPath();
+            ctx.arc(pumpX, pumpY, 14, Date.now() / 100, Date.now() / 100 + 1.5);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.arc(pumpX, pumpY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#6b7280';
+            ctx.fill();
+        }
+
+        // ---- PIPE from pump to field ----
+        ctx.beginPath();
+        ctx.moveTo(pumpX, pumpY - 10);
+        ctx.lineTo(pumpX, groundY - 60);
+        ctx.lineTo(300, groundY - 60);
+        ctx.strokeStyle = '#8b9dc3';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        // water flow animation
+        if (simulation.pumpStatus === 'RUNNING') {
+            ctx.beginPath();
+            const offset = (Date.now() / 50) % 40;
+            for (let d = 0; d < 200; d += 20) {
+                const px = pumpX - d - offset;
+                if (px > 280 && px < pumpX) {
+                    ctx.beginPath();
+                    ctx.arc(px, groundY - 60, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#4aa3d8';
+                    ctx.fill();
+                }
+            }
+        }
+
+        // ---- RAIN ANIMATION (second canvas) ----
+        rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+        if (simulation.rainfall > 0.1) {
+            rainCtx.strokeStyle = '#a0d0f0';
+            rainCtx.lineWidth = 2;
+            for (let r = 0; r < 80; r++) {
+                const rx = (Math.random() * rainCanvas.width * 1.2) - 50;
+                const ry = (Math.random() * rainCanvas.height * 0.8);
+                rainCtx.beginPath();
+                rainCtx.moveTo(rx, ry);
+                rainCtx.lineTo(rx - 3, ry + 12);
+                rainCtx.stroke();
+            }
+        }
+    }
+
+    // ---------- UPDATE UI LABELS ----------
+    function updateUI() {
+        // Weather
+        document.getElementById('tempLabel').textContent = Math.round(simulation.temperature) + '°C';
+        document.getElementById('humidityLabel').textContent = Math.round(simulation.humidity) + '%';
+        document.getElementById('weatherConditionLabel').textContent = simulation.weatherCondition;
+        const emojiMap = { 'SUNNY': '☀️', 'PARTLY CLOUDY': '⛅', 'CLOUDY': '☁️', 'RAIN': '🌧️', 'HEAVY RAIN': '⛈️' };
+        document.getElementById('weatherEmoji').textContent = emojiMap[simulation.weatherCondition] || '☀️';
+
+        // Crop
+        const crop = CROP_DATA[simulation.cropType];
+        document.getElementById('cropNameLabel').textContent = crop.name;
+        document.getElementById('cropStageLabel').textContent = simulation.growthStage;
+        document.getElementById('cropAgeLabel').textContent = simulation.cropAge + ' / ' + crop.duration + ' d';
+        document.getElementById('kcLabel').textContent = simulation.kc.toFixed(2);
+        document.getElementById('rootDepthLabel').textContent = simulation.rootDepth.toFixed(2) + ' m';
+
+        // Soil
+        document.getElementById('soilMoistureLabel').textContent = Math.round(simulation.soilMoisture) + '%';
+        document.getElementById('soilTypeLabel').textContent = simulation.soilType;
+        document.getElementById('soilTempLabel').textContent = Math.round(simulation.soilTemperature) + '°C';
+        document.getElementById('fieldCapLabel').textContent = simulation.fieldCapacity + '%';
+        document.getElementById('wiltingLabel').textContent = simulation.wiltingPoint + '%';
+
+        // Water sources
+        document.getElementById('wellLabel').textContent = Math.round(simulation.well).toLocaleString() + ' L';
+        document.getElementById('rainLabel').textContent = Math.round(simulation.rainTank).toLocaleString() + ' L';
+        document.getElementById('riverLabel').textContent = Math.round(simulation.river).toLocaleString() + ' L';
+        document.getElementById('wellFill').style.width = (simulation.well / 12000 * 100) + '%';
+        document.getElementById('rainFill').style.width = (simulation.rainTank / 10000 * 100) + '%';
+        document.getElementById('riverFill').style.width = (simulation.river / 30000 * 100) + '%';
+
+        // Pump
+        document.getElementById('pumpStatusLabel').textContent = simulation.pumpStatus;
+        document.getElementById('flowRateLabel').textContent = Math.round(simulation.pumpFlow) + ' L/min';
+        document.getElementById('irrReqLabel').textContent = Math.round(simulation.irrigationRequired).toLocaleString() + ' L';
+        document.getElementById('deliveredLabel').textContent = Math.round(simulation.delivered).toLocaleString() + ' L';
+        const nextHrs = calculateIrrigationFrequency();
+        document.getElementById('nextIrrLabel').textContent = nextHrs + ' h';
+
+        // Alert badge
+        const alertBadge = document.getElementById('alertBadge');
+        if (simulation.soilMoisture < simulation.minSoilMoisture) {
+            alertBadge.textContent = '🟡 IRRIGATION REQUIRED SOON';
+            alertBadge.style.background = '#fef3c7';
+            alertBadge.style.color = '#92400e';
+        } else if (simulation.rainTank > 4000) {
+            alertBadge.textContent = '🔵 RAINWATER AVAILABLE';
+            alertBadge.style.background = '#dbeafe';
+            alertBadge.style.color = '#1e40af';
+        } else if (simulation.damOpen) {
+            alertBadge.textContent = '🔵 RIVER WATER AVAILABLE';
+            alertBadge.style.background = '#dbeafe';
+            alertBadge.style.color = '#1e40af';
+        } else {
+            alertBadge.textContent = '🟢 IRRIGATION NOT REQUIRED';
+            alertBadge.style.background = '#d4f0dd';
+            alertBadge.style.color = '#1b5e3a';
+        }
+    }
+
+    // ---------- CHARTS (simple line/bar) ----------
+    function drawCharts() {
+        // Moisture chart
+        const mc = document.getElementById('chartMoisture');
+        const mctx = mc.getContext('2d');
+        mctx.clearRect(0, 0, mc.width, mc.height);
+        mctx.strokeStyle = '#2b8e5a';
+        mctx.lineWidth = 2;
+        mctx.beginPath();
+        simulation.moistureHistory.forEach((val, i) => {
+            const x = (i / (simulation.moistureHistory.length - 1)) * mc.width;
+            const y = mc.height - (val / 100) * mc.height;
+            if (i === 0) mctx.moveTo(x, y);
+            else mctx.lineTo(x, y);
+        });
+        mctx.stroke();
+
+        // Rain chart
+        const rc = document.getElementById('chartRain');
+        const rctx = rc.getContext('2d');
+        rctx.clearRect(0, 0, rc.width, rc.height);
+        rctx.fillStyle = '#3b9bd7';
+        simulation.rainHistory.forEach((val, i) => {
+            const barW = rc.width / simulation.rainHistory.length;
+            const barH = (val / 10) * rc.height;
+            rctx.fillRect(i * barW, rc.height - barH, barW - 1, barH);
+        });
+
+        // Usage chart
+        const uc = document.getElementById('chartUsage');
+        const uctx = uc.getContext('2d');
+        uctx.clearRect(0, 0, uc.width, uc.height);
+        uctx.fillStyle = '#1f7a9e';
+        simulation.usageHistory.forEach((val, i) => {
+            const barW = uc.width / simulation.usageHistory.length;
+            const barH = (val / 5000) * uc.height;
+            uctx.fillRect(i * barW, uc.height - barH, barW - 1, barH);
+        });
+    }
+
+    // ---------- SIMULATION LOOP ----------
+    let lastTime = performance.now();
+    function runSimulation() {
+        const now = performance.now();
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+
+        if (simulation.running) {
+            // Advance time: 1 real second = 0.5 sim minutes * speed
+            const simMinutes = dt * 0.5 * simulation.speed;
+            simulation.minute += simMinutes;
+            while (simulation.minute >= 60) {
+                simulation.minute -= 60;
+                simulation.hour++;
+                if (simulation.hour >= 24) {
+                    simulation.hour = 0;
+                    simulation.day++;
+                }
+            }
+
+            // Update crop age (1 day = 120 sim minutes approx)
+            if (simulation.cropAge < CROP_DATA[simulation.cropType].duration) {
+                simulation.cropAge += dt * 0.02 * simulation.speed;
+            }
+
+            // Weather update every ~5 sim seconds
+            if (Math.floor(now / 2000) !== Math.floor(lastTime / 2000)) {
+                generateWeather();
+            }
+
+            // Soil & crop update
+            updateSoil();
+            updateWaterSources();
+
+            // Irrigation decision (auto)
+            if (simulation.irrigationMode === 'auto') {
+                const req = calculateIrrigationRequirement();
+                simulation.irrigationRequired = req;
+                if (simulation.soilMoisture < simulation.minSoilMoisture && simulation.pumpStatus !== 'RUNNING' && simulation.pumpStatus !== 'COMPLETED') {
+                    // Start pump
+                    const source = selectWaterSource(req);
+                    simulation.activeSource = source;
+                    simulation.targetIrrigation = Math.min(req, 
+                        source === 'well' ? simulation.well :
+                        source === 'rain' ? simulation.rainTank : simulation.river);
+                    simulation.targetIrrigation = Math.max(500, simulation.targetIrrigation);
+                    simulation.pumpStatus = 'RUNNING';
+                    simulation.delivered = 0;
+                    simulation.usageHistory.push(simulation.targetIrrigation);
+                    if (simulation.usageHistory.length > 30) simulation.usageHistory.shift();
+                }
+            } else {
+                // manual mode still updates requirement
+                simulation.irrigationRequired = calculateIrrigationRequirement();
+            }
+
+            // Pump operation
+            if (simulation.pumpStatus === 'RUNNING') {
+                operatePump();
+            }
+
+            // Update history arrays
+            simulation.moistureHistory.push(simulation.soilMoisture);
+            if (simulation.moistureHistory.length > 30) simulation.moistureHistory.shift();
+            simulation.rainHistory.push(simulation.rainfall);
+            if (simulation.rainHistory.length > 30) simulation.rainHistory.shift();
+        }
+
+        // Always draw
+        drawFarmScene();
+        updateUI();
+        drawCharts();
+
+        // update time display
+        const hourStr = simulation.hour.toString().padStart(2, '0');
+        const minStr = Math.floor(simulation.minute).toString().padStart(2, '0');
+        const ampm = simulation.hour >= 12 ? 'PM' : 'AM';
+        const hour12 = simulation.hour % 12 || 12;
+        document.getElementById('simDayLabel').textContent = 'DAY ' + simulation.day;
+        document.getElementById('simTimeLabel').textContent = hour12 + ':' + minStr + ' ' + ampm;
+
+        requestAnimationFrame(runSimulation);
+    }
+
+    // ---------- EVENT LISTENERS ----------
+    document.getElementById('playBtn').addEventListener('click', () => { simulation.running = true; });
+    document.getElementById('pauseBtn').addEventListener('click', () => { simulation.running = false; });
+    document.getElementById('speed2xBtn').addEventListener('click', () => { simulation.speed = 2; });
+    document.getElementById('speed5xBtn').addEventListener('click', () => { simulation.speed = 5; });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        simulation.day = 64; simulation.hour = 8; simulation.minute = 42;
+        simulation.soilMoisture = 42; simulation.well = 6500; simulation.rainTank = 2400; simulation.river = 12000;
+        simulation.pumpStatus = 'OFF'; simulation.delivered = 0; simulation.running = false; simulation.speed = 1;
+        simulation.cropAge = 64; simulation.damOpen = false;
+        simulation.moistureHistory = Array(30).fill(42);
+        simulation.rainHistory = Array(30).fill(0);
+        simulation.usageHistory = Array(30).fill(0);
+        generateWeather();
+    });
+
+    document.getElementById('openDamBtn').addEventListener('click', () => { simulation.damOpen = true; });
+    document.getElementById('closeDamBtn').addEventListener('click', () => { simulation.damOpen = false; });
+
+    document.getElementById('cropSelect').addEventListener('change', (e) => {
+        simulation.cropType = e.target.value;
+        simulation.cropAge = 0;
+        const crop = CROP_DATA[simulation.cropType];
+        simulation.minSoilMoisture = crop.minMoisture;
+        simulation.targetSoilMoisture = crop.targetMoisture;
+    });
+
+    document.getElementById('irrigationModeSelect').addEventListener('change', (e) => {
+        simulation.irrigationMode = e.target.value;
+    });
+
+    document.getElementById('waterSourceSelect').addEventListener('change', (e) => {
+        simulation.waterSourceMode = e.target.value;
+        if (e.target.value !== 'auto') simulation.activeSource = e.target.value;
+    });
+
+    document.getElementById('pumpOnBtn').addEventListener('click', () => {
+        if (simulation.pumpStatus !== 'RUNNING') {
+            simulation.pumpStatus = 'RUNNING';
+            simulation.delivered = 0;
+            simulation.targetIrrigation = simulation.irrigationRequired > 0 ? simulation.irrigationRequired : 2000;
+            const source = simulation.waterSourceMode !== 'auto' ? simulation.waterSourceMode : selectWaterSource(simulation.targetIrrigation);
+            simulation.activeSource = source;
+        }
+    });
+
+    document.getElementById('pumpOffBtn').addEventListener('click', () => {
+        simulation.pumpStatus = 'OFF';
+        simulation.pumpFlow = 0;
+        simulation.delivered = 0;
+    });
+
+    // ---------- INITIALISE ----------
+    function init() {
+        generateWeather();
+        updateSoil();
+        drawFarmScene();
+        updateUI();
+        drawCharts();
+        simulation.running = true;  // auto start
+        lastTime = performance.now();
+        requestAnimationFrame(runSimulation);
+    }
+
+    init();
+
+</script>
+</body>
+</html>
